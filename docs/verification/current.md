@@ -307,6 +307,27 @@ RTX 3060でUE5 D3D12とSashiko Vulkanを同じ9視点から3840×2160で撮影�
 
 ![左から修正前UE5、修正後UE5、修正後Sashiko。上段は視点b、下段は視点hの切り出し](namaqualand-contact.jpg)
 
+<a id="namaqualand-tangents"></a>
+
+### glTFの生成接線とNamaqualandの岩肌・地面
+
+接地を揃えた視点 b、3840×2160。Sashiko Vulkanで旧パッケージと元glTFを再クックしたパッケージを、UE5 D3D12で元の `AnchorsExact` を再撮影した。通常照明の線形RGBを共通の露出1倍・sRGBで表示した。Sashikoの5,328配置、LOD選択、ライトマップ、プローブ、太陽、影の設定を固定し、比較パッケージが参照する206種類の詳細・簡略メッシュについて、生成接線wだけを反転すると新クッカーの出力とバイト一致することを確認した。以下は各列同じ画素範囲の切り出し。
+
+![通常照明。左からSashiko修正前、再クック後、UE5。上が岩肌、下が地面](namaqualand-tangent-lighting.jpg)
+
+ワールド法線をSashiko座標系に統一した。UE5からは (X,Z,Y)、Blenderからは (X,Z,−Y) として正規化した。表は同じ画素の法線どうしがなす角の中央値。岩は左上 (3300,500) の63×81画素、地面は (795,1510) の220×190画素。Blender原本を測定したのは岩だけ。追加対照のUEレベルでは対象メッシュのUVを全精度にした。元のUE法線マテリアルを使用した。
+
+| 領域・比較先 | Sashiko 修正前 | Sashiko 再クック後 |
+|---|---:|---:|
+| 岩肌・UE5 | 7.98° | 1.72° |
+| 岩肌・Blender原本 | 8.30° | 2.16° |
+| 地面・UE5 | 30.20° | 24.38° |
+| 地面・UE5全精度UV | 23.07° | 2.06° |
+
+![同じ座標系で表示したワールド法線。左から修正前、再クック後、元のUE5](namaqualand-tangent-normals.jpg)
+
+既知斜面 `z = −y/2` の理論法線とVulkanの読み戻しを比較した。生成接線の誤差は53.26°から0.18°になり、修正後は明示接線と一致した。鏡像UV、負のXスケールでも両者は一致し、いずれも0.24°以内。Khronosの [NormalTangentTest](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/NormalTangentTest) と [NormalTangentMirrorTest](https://github.com/KhronosGroup/glTF-Sample-Assets/tree/main/Models/NormalTangentMirrorTest) もクックし、正面のGPU法線画像で各列の球面の向きを確認した。[切り出し・検算スクリプト・比較パッケージ再生成用スクリプト](../../assets/verification/namaqualand-tangent-evidence.zip)
+
 <a id="namaqualand-residency"></a>
 
 ### 視点に応じた読み込みと固定常駐の比較

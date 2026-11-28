@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import struct
 import zipfile
 
 
@@ -21,6 +22,27 @@ def references(value):
             yield from references(item)
 
 
+def restore_historical_mesh(candidates, size, digest, target):
+    # These two benchmark manifests pin meshes cooked before the glTF tangent.w fix.
+    # Recover only the exact archived bytes. Never modify the current object store.
+    for path in candidates.get(size, ()):
+        with path.open("rb") as src:
+            header = src.read(16)
+            if len(header) != 16 or header[:8] != b"RMESH001":
+                continue
+            vertices, indices = struct.unpack_from("<II", header, 8)
+            if size != 16 + vertices * 48 + indices * 4:
+                continue
+            data = bytearray(header + src.read())
+        # Little-endian float sign bit, fourth tangent component at vertex offset 36.
+        signs = slice(16 + 39, 16 + vertices * 48, 48)
+        data[signs] = data[signs].translate(bytes(i ^ 128 for i in range(256)))
+        if hashlib.sha256(data).hexdigest() == digest:
+            target.write_bytes(data)
+            return
+    raise FileNotFoundError(f"No object matching historical mesh {digest}")
+
+
 def restore(base, destination, archive, mode):
     with zipfile.ZipFile(archive) as evidence:
         manifest = evidence.read(f"{mode}/scene.json")
@@ -28,6 +50,7 @@ def restore(base, destination, archive, mode):
         objects = destination / "objects"
         objects.mkdir()
         members = set(evidence.namelist())
+        candidates = None
         for digest, size in sorted(set(references(json.loads(manifest)))):
             if len(digest) != 64 or bytes.fromhex(digest).hex() != digest:
                 raise ValueError(f"Invalid object digest {digest!r}")
@@ -38,10 +61,17 @@ def restore(base, destination, archive, mode):
                     shutil.copyfileobj(source, output)
             else:
                 source = base / "objects" / digest
-                try:
-                    os.link(source, target)
-                except OSError:
-                    shutil.copyfile(source, target)
+                if source.is_file():
+                    try:
+                        os.link(source, target)
+                    except OSError:
+                        shutil.copyfile(source, target)
+                else:
+                    if candidates is None:
+                        candidates = {}
+                        for obj in (base / "objects").iterdir():
+                            candidates.setdefault(obj.stat().st_size, []).append(obj)
+                    restore_historical_mesh(candidates, size, digest, target)
             with target.open("rb") as blob:
                 if target.stat().st_size != size or hashlib.file_digest(blob, "sha256").hexdigest() != digest:
                     raise ValueError(f"Object mismatch: {target}")

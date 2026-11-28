@@ -214,7 +214,7 @@ pub(super) fn cook(
             positions,
             normals,
             uvs,
-            None,
+            geometry::Tangents::GeneratePbrt,
             indices,
             super::change_basis(),
         )

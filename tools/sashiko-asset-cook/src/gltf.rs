@@ -353,7 +353,7 @@ mod tests {
             let vertex = mesh.vertices[index as usize];
             assert_eq!(vertex.position, [x, y, 0.5]);
             assert_eq!(vertex.normal, [0., 0., -1.]);
-            assert_eq!(vertex.tangent[3], 1., "tangent handedness");
+            assert_eq!(vertex.tangent[3], -1., "glTF tangent handedness");
             assert_eq!(vertex.uv, [u, v]);
             for (actual, reference) in vertex.tangent[..3].iter().zip([tx, ty, 0.]) {
                 assert!(

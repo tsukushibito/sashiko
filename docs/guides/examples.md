@@ -140,6 +140,19 @@ target/release/scene-viewer.exe --api vulkan $aligned rock
 
 Sashikoの生成先には新しいディレクトリを指定する。入力は焼き込み済みのVSMパッケージと、それと同じプリミティブ順を持つ元のglTF。撮影では植物のLOD、マテリアル、ライトマップ、プローブ、太陽とカメラの設定を引き継ぐ。[接地境界の検証と比較写真](../verification/current.md#namaqualand-contact)
 
+生成接線の修正を含む比較には、上記の手順で接地を揃えたパッケージと、現行クッカーで同じ元glTF・レシピから生成したパッケージを使う。検証ZIPの `rebind.py` は、各メッシュについて接線wだけが変わったことを照合してからライトマップ用UVと影メッシュを対応付ける。リポジトリのルートで実行する。
+
+```powershell
+$fixed = "build/tasks/sashiko-2064"
+target/release/sashiko-asset-cook.exe scene "$task/gltf/section.gltf" "$task/recipe.json" "$fixed/recooked"
+git lfs pull --include="assets/verification/namaqualand-tangent-evidence.zip"
+Expand-Archive assets/verification/namaqualand-tangent-evidence.zip "$fixed/evidence"
+python "$fixed/evidence/rebind.py" $aligned "$fixed/recooked" "$fixed/aligned"
+target/release/scene-viewer.exe --api vulkan "$fixed/aligned" b
+```
+
+旧CSM・VSM測定を復元するときは、上記の復元ツールが旧マニフェストのSHA-256に一致するメッシュを使う。[再クック前後の通常照明とワールド法線](../verification/current.md#namaqualand-tangents)
+
 <a id="landscape"></a>
 
 ## Landscape の草原を描画する

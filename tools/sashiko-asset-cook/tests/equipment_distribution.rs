@@ -148,10 +148,10 @@ fn clean_cook_matches_reference_generation_and_loads_without_sources() -> Result
     fs::remove_dir_all(project.0.join("source"))?;
     fs::remove_dir_all(project.0.join("cache"))?;
     let generation = Generation::open(&actual)?;
-    // The original distribution's catalog digest also commits to every object hash and size.
+    // This catalog includes the glTF-handed generated tangents and commits to every object.
     assert_eq!(
         generation.id().to_string(),
-        "cf05211e283db404a55445283f3a99501925d7da73b536759f3799d64b93095f"
+        "4664f70830c90c5de8c92f27b1c3c4c6960819a3749b200ef01c124070d5e8a9"
     );
     let catalog = Catalog::decode(
         &fs::read(actual.join("catalogs").join(generation.id().to_string()))?,

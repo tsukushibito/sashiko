@@ -1,5 +1,5 @@
 use super::Result;
-use crate::geometry::unit;
+use crate::geometry::{Tangents, unit};
 use glam::{Mat4, Vec3};
 use gltf::{
     Accessor, Primitive, Semantic,
@@ -123,10 +123,14 @@ pub(super) fn cook(
         .ok_or("missing TEXCOORD_0")?
         .into_f32()
         .collect();
-    let authored = reader.read_tangents().map(|v| v.collect::<Vec<_>>());
+    let tangents = reader
+        .read_tangents()
+        .map_or(Tangents::GenerateGltf, |values| {
+            Tangents::Authored(values.collect())
+        });
     let indices: Vec<_> = match reader.read_indices() {
         Some(i) => i.into_u32().collect(),
         None => (0..u32::try_from(positions.len())?).collect(),
     };
-    crate::geometry::triangles(positions, normals, uvs, authored, indices, transform)
+    crate::geometry::triangles(positions, normals, uvs, tangents, indices, transform)
 }
